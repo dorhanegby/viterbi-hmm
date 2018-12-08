@@ -39,16 +39,19 @@ public class Main {
 
     public static void initTransitions() {
         transitions = new double[8][8];
-        transitions[0][0] = 0.9;
-        transitions[0][1] = 0.1;
-        transitions[1][2] = 1;
-        transitions[2][3] = 0.8;
-        transitions[2][4] = 0.2;
-        transitions[3][5] = 1;
-        transitions[4][6] = 0.5;
-        transitions[4][7] = 0.5;
-        transitions[5][3] = 0.8;
-        transitions[2][4] = 0.2;
+        transitions[S1][S1] = 0.9;
+        transitions[S1][S2] = 0.1;
+        transitions[S2][S3] = 1.0;
+        transitions[S3][S4] = 0.8;
+        transitions[S3][S5] = 0.2;
+        transitions[S4][S6] = 1.0;
+        transitions[S5][S7] = 0.5;
+        transitions[S5][S8] = 0.5;
+        transitions[S6][S4] = 0.8;
+        transitions[S6][S5] = 0.2;
+        transitions[S7][S4] = 0.8;
+        transitions[S7][S5] = 0.2;
+        transitions[S8][S1] = 1.0;
     }
 
     public static void initEmissions() {
