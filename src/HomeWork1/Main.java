@@ -3,10 +3,16 @@ package HomeWork1;
 public class Main {
 
 
-    private class Cell {
+    private static class Cell {
         int state;
         Cell parent;
         double maxLikelihood;
+
+        public Cell(int state, Cell parent, double maxLikelihood) {
+            this.state = state;
+            this.parent = parent;
+            this.maxLikelihood = maxLikelihood;
+        }
     }
 
     public static double[][] transitions;
@@ -21,20 +27,28 @@ public class Main {
     public static final int S7=6;
     public static final int S8=7;
 
+    public static final int K_STATES = 8;
+
 
     public static final int A = 0;
     public static final int G = 1;
     public static final int C = 2;
     public static final int T = 3;
 
+    public static final String SEQUENCE = "CCATCGCACTAGGGACGGTGGTCCGACGCACATGTTGCTCC";
 
-    public static void main(String[] args) {
-	    initModel();
-    }
+    public static int baseToIndex(char base) {
+        if(base == 'A') {
+            return A;
+        }
+        else if(base == 'G') {
+            return G;
+        }
+        else if (base == 'C') {
+            return C;
+        }
 
-    public static void initModel() {
-        initTransitions();
-        initEmissions();
+        return T;
     }
 
     public static void initTransitions() {
@@ -96,4 +110,73 @@ public class Main {
         emissions[S8][C] = 0.5;
         emissions[S8][T] = 0;
     }
+
+    public static void initModel() {
+        initTransitions();
+        initEmissions();
+    }
+
+    private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
+        viterbiMatrix[0][0] = new Cell(0, null, 1);
+
+        for(int j=1;j<K_STATES;j++) {
+            viterbiMatrix[0][j] = new Cell(0, null, 0);
+        }
+    }
+
+    private static Cell calculateMaxParent(int currentIndex, int state, Cell[][] viterbiMatrix, String sequence) {
+
+        // TODO: add log probabilities
+
+        int x_i = baseToIndex(sequence.charAt(currentIndex));
+
+        double maxValue = -Double.MAX_VALUE;
+        Cell maxParent = null;
+
+        for (int j = 0; j < K_STATES; j++) {
+
+           double value = viterbiMatrix[currentIndex - 1][j].maxLikelihood * transitions[j][state] * emissions[state][x_i];
+           if(value > maxValue) {
+               maxValue = value;
+               maxParent = viterbiMatrix[currentIndex - 1][j];
+           }
+        }
+
+        return new Cell(state, maxParent, maxValue);
+    }
+
+    private static void updateViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
+        int n = sequence.length();
+
+        for(int i = 1; i < n;i++) {
+            for(int j=0; j < K_STATES ; j++) {
+                viterbiMatrix[i][j] = calculateMaxParent(i, j, viterbiMatrix, sequence);
+            }
+        }
+        System.out.println();
+    }
+
+    // V[i,j] = the probability of an annotation of
+    // the prefix X1...Xi  that has the highest probability among
+    // those that end with state sj
+    public static void viterbi(String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+        Cell[][] viterbiMatrix = new Cell[n][K_STATES];
+
+        initViterbiMatrix(viterbiMatrix);
+        updateViterbiMatrix(viterbiMatrix, sequence);
+
+    }
+
+
+
+    public static void main(String[] args) {
+	    initModel();
+
+        viterbi(SEQUENCE);
+    }
+
+
+
+
 }
