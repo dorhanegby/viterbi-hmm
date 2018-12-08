@@ -10,7 +10,7 @@ public class Main {
     }
 
     public static double[][] transitions;
-    public double[][] emissions;
+    public static double[][] emissions;
 
 
     public static void main(String[] args) {
@@ -28,6 +28,7 @@ public class Main {
     }
 
     public static void initEmissions() {
-        emissions = new double[8][8];
+        emissions = new double[8][4];
+        System.out.println("hey");
     }
 }
