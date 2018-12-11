@@ -6,12 +6,12 @@ public class Main {
     private static class Cell {
         int state;
         Cell parent;
-        double maxLikelihood;
+        double value;
 
-        public Cell(int state, Cell parent, double maxLikelihood) {
+        public Cell(int state, Cell parent, double value) {
             this.state = state;
             this.parent = parent;
-            this.maxLikelihood = maxLikelihood;
+            this.value = value;
         }
     }
 
@@ -20,14 +20,15 @@ public class Main {
 
     public static int OFFSET = 1;
 
-    public static final int S1=0;
-    public static final int S2=1;
-    public static final int S3=2;
-    public static final int S4=3;
-    public static final int S5=4;
-    public static final int S6=5;
-    public static final int S7=6;
-    public static final int S8=7;
+    public static final int S0=0;
+    public static final int S1=1;
+    public static final int S2=2;
+    public static final int S3=3;
+    public static final int S4=4;
+    public static final int S5=5;
+    public static final int S6=6;
+    public static final int S7=7;
+    public static final int S8=8;
 
     public static final int K_STATES = 8;
 
@@ -54,7 +55,11 @@ public class Main {
     }
 
     public static void initTransitions() {
-        transitions = new double[8][8];
+        transitions = new double[9][9];
+        transitions[S0][S1] = 1; // We assume the sequence starts in intergenic
+        for(int j=2;j<K_STATES + 1;j++) {
+            transitions[S0][j] = 0;
+        }
         transitions[S1][S1] = 0.9;
         transitions[S1][S2] = 0.1;
         transitions[S2][S3] = 1.0;
@@ -71,7 +76,7 @@ public class Main {
     }
 
     public static void initEmissions() {
-        emissions = new double[8][4];
+        emissions = new double[9][4];
         emissions[S1][A] = 0.3;
         emissions[S1][G] = 0.2;
         emissions[S1][C] = 0.2;
@@ -119,24 +124,22 @@ public class Main {
     }
 
     private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
-        viterbiMatrix[0][0] = new Cell(0, null, 0);
+        viterbiMatrix[0][0] = new Cell(0, null, 0); // Dummy State.
 
-        for(int j=1;j<K_STATES;j++) {
+        for(int j=1;j<K_STATES + 1;j++) {
             viterbiMatrix[0][j] = new Cell(0, null, -Double.MAX_VALUE);
         }
     }
 
     private static Cell calculateMaxParent(int currentIndex, int state, Cell[][] viterbiMatrix, String sequence) {
 
-        // TODO: add log probabilities
-
-        int x_i = baseToIndex(sequence.charAt(currentIndex));
+        int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
 
         double maxValue = -Double.MAX_VALUE;
         Cell maxParent = null;
 
-        for (int j = 0; j < K_STATES; j++) {
-            double value = viterbiMatrix[currentIndex - 1][j].maxLikelihood + Math.log(transitions[j][state]);
+        for (int j = 0; j < K_STATES + 1; j++) {
+            double value = viterbiMatrix[currentIndex - 1][j].value + Math.log(transitions[j][state]);
 
            if(value > maxValue) {
                maxValue = value;
@@ -150,12 +153,11 @@ public class Main {
     private static void updateViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
         int n = sequence.length();
 
-        for(int i = 1; i < n;i++) {
-            for(int j=0; j < K_STATES ; j++) {
+        for(int i = 1; i < n + 1;i++) {
+            for(int j=0; j < K_STATES + 1 ; j++) {
                 viterbiMatrix[i][j] = calculateMaxParent(i, j, viterbiMatrix, sequence);
             }
         }
-        System.out.println();
     }
 
 
@@ -163,26 +165,26 @@ public class Main {
 
         int n = sequence.length();
 
-        Cell maxCell = viterbiMatrix[n - 1][0];
+        Cell maxCell = viterbiMatrix[n][1];
 
-        for(int j=1; j < K_STATES ; j++) {
-            Cell current = viterbiMatrix[n - 1][j];
+        for(int j=2; j < K_STATES + 1; j++) {
+            Cell current = viterbiMatrix[n][j];
 
-            if(current.maxLikelihood > maxCell.maxLikelihood) {
+            if(current.value > maxCell.value) {
                 maxCell = current;
             }
         }
 
         String hmm = "";
         Cell current = maxCell;
-        double maxLikelihood = maxCell.maxLikelihood;
+        double maxLikelihood = maxCell.value;
 
         while(current != null) {
-            hmm = (current.state + OFFSET) + hmm;
+            hmm = current.state + hmm;
             current = current.parent;
         }
         System.out.println(hmm);
-        System.out.println(sequence);
+        System.out.println(" "+ sequence);
 
         System.out.println("log(P(X, S | HMM)) = " + maxLikelihood);
 
@@ -193,22 +195,98 @@ public class Main {
     // those that end with state sj
     public static void viterbi(String sequence) {
         int n = sequence.length(); // Size of the sequence.
-        Cell[][] viterbiMatrix = new Cell[n][K_STATES];
+        Cell[][] viterbiMatrix = new Cell[n + 1][K_STATES + 1];
 
         initViterbiMatrix(viterbiMatrix);
         updateViterbiMatrix(viterbiMatrix, sequence);
         outputViterbiMatrix(viterbiMatrix, sequence);
     }
 
+    private static void initForwardMatrix(Cell[][] forwardMatrix) {
+        initViterbiMatrix(forwardMatrix);
+    }
+
+
+    private static double findMax(double[] a) {
+        double maxValue = a[0];
+        for(int i=1;i<a.length;i++) {
+            if(a[i] > maxValue) {
+                maxValue = a[i];
+            }
+        }
+
+        return maxValue;
+    }
+
+    private static Cell calculateSumOfLastColumn(int currentIndex, int state, Cell[][] forwardMatrix, String sequence) {
+
+        int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
+
+        // Calculate sum of Logs - numeric stable.
+        double [] a = new double[K_STATES + 1];
+        double [] b = new double[K_STATES + 1];
+
+        for (int l=0;l<a.length;l++) {
+
+            a[l] = forwardMatrix[currentIndex - 1][l].value + Math.log(transitions[l][state]);
+        }
+
+        double maxA = findMax(a);
+        double sum = 0;
+        for (int i =0;i<b.length;i++) {
+
+            if(Double.isInfinite(maxA)) {
+                return new Cell(state, null, maxA);
+            }
+
+            b[i] = a[i] - maxA;
+            sum += Math.exp(b[i]);
+
+        }
+
+
+        double sumOfLogs = maxA + Math.log(sum);
+
+
+        return new Cell(state, null, sumOfLogs + Math.log(emissions[state][x_i]));
+
+    }
+
+
+    private static void updateForwardMatrix(Cell[][] forwardMatrix, String sequence) {
+
+        int n = sequence.length();
+
+        for(int i = 1; i < n + 1;i++) {
+            for(int j=0; j < K_STATES + 1; j++) {
+                forwardMatrix[i][j] = calculateSumOfLastColumn(i, j, forwardMatrix, sequence);
+            }
+        }
+
+    }
+
+
+
+    public static void forward(String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+        Cell[][] forwardMatrix = new Cell[n + 1][K_STATES + 1];
+
+        initForwardMatrix(forwardMatrix);
+        updateForwardMatrix(forwardMatrix, sequence);
+        System.out.println();
+    }
+
+
 
 
     public static void main(String[] args) {
 	    initModel();
 
-        viterbi(SEQUENCE);
+//        viterbi(SEQUENCE);
+
+        forward(SEQUENCE);
 
     }
-
 
 
 

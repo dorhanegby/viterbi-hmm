@@ -10,3 +10,4 @@ viterbi-hmm.iml
 *.xml
 .idea/vcs.xml
 *.class
+out/production/viterbi-hmm/HomeWork1/Main$Cell.class
