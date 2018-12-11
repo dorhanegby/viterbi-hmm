@@ -127,7 +127,7 @@ public class Main {
         viterbiMatrix[0][0] = new Cell(0, null, 0); // Dummy State.
 
         for(int j=1;j<K_STATES + 1;j++) {
-            viterbiMatrix[0][j] = new Cell(0, null, -Double.MAX_VALUE);
+            viterbiMatrix[0][j] = new Cell(0, null, -Double.POSITIVE_INFINITY);
         }
     }
 
@@ -135,7 +135,7 @@ public class Main {
 
         int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
 
-        double maxValue = -Double.MAX_VALUE;
+        double maxValue = -Double.POSITIVE_INFINITY;
         Cell maxParent = null;
 
         for (int j = 0; j < K_STATES + 1; j++) {
@@ -267,16 +267,110 @@ public class Main {
 
 
 
-    public static void forward(String sequence) {
+    public static Cell[][] forward(String sequence) {
         int n = sequence.length(); // Size of the sequence.
         Cell[][] forwardMatrix = new Cell[n + 1][K_STATES + 1];
 
         initForwardMatrix(forwardMatrix);
         updateForwardMatrix(forwardMatrix, sequence);
-        System.out.println();
+
+        return forwardMatrix;
+    }
+
+    private static void initBackwardMatrix(Cell[][] backwardMatrix,String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+
+        for(int j=1;j<K_STATES + 1;j++) {
+            backwardMatrix[n][j] = new Cell(j, null, 0);
+        }
+    }
+
+    private static Cell calculateSumOfFrontColumn(int currentIndex, int state, Cell[][] backardMatrix, String sequence) {
+
+        int x_i_1 = baseToIndex(sequence.charAt(currentIndex));
+
+        // Calculate sum of Logs - numeric stable.
+        double [] a = new double[K_STATES + 1];
+        double [] b = new double[K_STATES + 1];
+
+        for (int l=1;l<a.length;l++) {
+            a[l] = backardMatrix[currentIndex + 1][l].value + Math.log(transitions[state][l]) + Math.log(emissions[l][x_i_1]);
+        }
+
+        double maxA = findMax(a);
+        double sum = 0;
+        for (int i =0;i<b.length;i++) {
+
+            b[i] = a[i] - maxA;
+            sum += Math.exp(b[i]);
+        }
+
+        return new Cell(state, null, sum);
+    }
+
+    private static void updateBackwardMatrix(Cell[][] backwardMatrix, String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+
+        for(int i = n - 1; i > 0; i--) {
+            for(int j=1;j<K_STATES + 1; j++) {
+                backwardMatrix[i][j] = calculateSumOfFrontColumn(i, j, backwardMatrix, sequence);
+            }
+        }
     }
 
 
+
+    public static Cell[][] backward(String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+        Cell[][] backwardMatrix = new Cell[n + 1][K_STATES + 1];
+
+        initBackwardMatrix(backwardMatrix, sequence);
+        updateBackwardMatrix(backwardMatrix, sequence);
+
+        return backwardMatrix;
+    }
+
+
+    private static int findMaxInColumn(Cell[] col) {
+
+        int argMax = 1;
+        double maxValue = col[1].value;
+
+        for(int j=2;j<col.length;j++) {
+            if (col[j].value > maxValue) {
+                argMax = j;
+            }
+        }
+
+        return argMax;
+    }
+
+    private static Cell[] [] calculateMAP(String sequence) {
+        int n = sequence.length(); // Size of the sequence.
+
+        Cell[] [] forwardMatrix = forward(sequence);
+        Cell[] [] backwardMatrix = backward(sequence);
+
+        Cell[] [] map = new Cell[n + 1] [K_STATES + 1];
+
+        for(int i =1;i<n+1;i++) {
+            for(int j=1;j<K_STATES + 1;j++) {
+                double value = forwardMatrix[i][j].value * backwardMatrix[i][j].value;
+                map[i][j] = new Cell(j, null, value);
+            }
+        }
+
+        String hmm = "";
+        for(int i=1;i<n + 1;i++) {
+            int argMax = findMaxInColumn(map[i]);
+            hmm = hmm + argMax;
+        }
+
+        System.out.println(hmm);
+        System.out.println(sequence);
+        return map;
+
+    }
 
 
     public static void main(String[] args) {
@@ -284,7 +378,7 @@ public class Main {
 
 //        viterbi(SEQUENCE);
 
-        forward(SEQUENCE);
+        calculateMAP(SEQUENCE);
 
     }
 
