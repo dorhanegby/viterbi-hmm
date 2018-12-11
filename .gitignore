@@ -9,3 +9,4 @@
 viterbi-hmm.iml
 *.xml
 .idea/vcs.xml
+*.class

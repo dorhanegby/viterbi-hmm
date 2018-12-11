@@ -18,6 +18,8 @@ public class Main {
     public static double[][] transitions;
     public static double[][] emissions;
 
+    public static int OFFSET = 1;
+
     public static final int S1=0;
     public static final int S2=1;
     public static final int S3=2;
@@ -117,10 +119,10 @@ public class Main {
     }
 
     private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
-        viterbiMatrix[0][0] = new Cell(0, null, 1);
+        viterbiMatrix[0][0] = new Cell(0, null, 0);
 
         for(int j=1;j<K_STATES;j++) {
-            viterbiMatrix[0][j] = new Cell(0, null, 0);
+            viterbiMatrix[0][j] = new Cell(0, null, -Double.MAX_VALUE);
         }
     }
 
@@ -134,15 +136,15 @@ public class Main {
         Cell maxParent = null;
 
         for (int j = 0; j < K_STATES; j++) {
+            double value = viterbiMatrix[currentIndex - 1][j].maxLikelihood + Math.log(transitions[j][state]);
 
-           double value = viterbiMatrix[currentIndex - 1][j].maxLikelihood * transitions[j][state] * emissions[state][x_i];
            if(value > maxValue) {
                maxValue = value;
                maxParent = viterbiMatrix[currentIndex - 1][j];
            }
         }
 
-        return new Cell(state, maxParent, maxValue);
+        return new Cell(state, maxParent, maxValue + Math.log(emissions[state][x_i]));
     }
 
     private static void updateViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
@@ -156,6 +158,36 @@ public class Main {
         System.out.println();
     }
 
+
+    private static void outputViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
+
+        int n = sequence.length();
+
+        Cell maxCell = viterbiMatrix[n - 1][0];
+
+        for(int j=1; j < K_STATES ; j++) {
+            Cell current = viterbiMatrix[n - 1][j];
+
+            if(current.maxLikelihood > maxCell.maxLikelihood) {
+                maxCell = current;
+            }
+        }
+
+        String hmm = "";
+        Cell current = maxCell;
+        double maxLikelihood = maxCell.maxLikelihood;
+
+        while(current != null) {
+            hmm = (current.state + OFFSET) + hmm;
+            current = current.parent;
+        }
+        System.out.println(hmm);
+        System.out.println(sequence);
+
+        System.out.println("log(P(X, S | HMM)) = " + maxLikelihood);
+
+    }
+
     // V[i,j] = the probability of an annotation of
     // the prefix X1...Xi  that has the highest probability among
     // those that end with state sj
@@ -165,7 +197,7 @@ public class Main {
 
         initViterbiMatrix(viterbiMatrix);
         updateViterbiMatrix(viterbiMatrix, sequence);
-
+        outputViterbiMatrix(viterbiMatrix, sequence);
     }
 
 
@@ -174,6 +206,7 @@ public class Main {
 	    initModel();
 
         viterbi(SEQUENCE);
+
     }
 
 
