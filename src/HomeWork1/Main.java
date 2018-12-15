@@ -379,7 +379,7 @@ public class Main {
 //        viterbi(SEQUENCE);
 
         calculateMAP(SEQUENCE);
-
+        System.out.println("Ben");
     }
 
 
