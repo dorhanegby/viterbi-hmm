@@ -291,6 +291,7 @@ public class Main {
 
         // Calculate sum of Logs - numeric stable.
         double [] a = new double[K_STATES + 1];
+        a[0] = Math.log(0);
         double [] b = new double[K_STATES + 1];
 
         for (int l=1;l<a.length;l++) {
@@ -301,11 +302,15 @@ public class Main {
         double sum = 0;
         for (int i =0;i<b.length;i++) {
 
+            if(Double.isInfinite(maxA)) {
+                return new Cell(state, null,maxA);
+            }
+
             b[i] = a[i] - maxA;
             sum += Math.exp(b[i]);
         }
 
-        return new Cell(state, null, sum);
+        return new Cell(state, null,maxA + sum);
     }
 
     private static void updateBackwardMatrix(Cell[][] backwardMatrix, String sequence) {
@@ -356,7 +361,13 @@ public class Main {
         for(int i =1;i<n+1;i++) {
             for(int j=1;j<K_STATES + 1;j++) {
                 double value = forwardMatrix[i][j].value * backwardMatrix[i][j].value;
-                map[i][j] = new Cell(j, null, value);
+                if(Double.isInfinite(value) || Double.isNaN(value)) {
+                    map[i][j] = new Cell(j, null, Double.NEGATIVE_INFINITY);
+                }
+                else {
+                    map[i][j] = new Cell(j, null, value);
+                }
+
             }
         }
 
@@ -366,10 +377,47 @@ public class Main {
             hmm = hmm + argMax;
         }
 
-        System.out.println(hmm);
-        System.out.println(sequence);
+
+
+        printStringWithTab(hmm);
+        printStringWithTab(sequence);
+        printMatrix(forwardMatrix);
+        System.out.println();
+        printMatrix(backwardMatrix);
+        System.out.println();
+        printMatrix(map);
         return map;
 
+    }
+
+    public static void printMatrix(Cell[][] matrix) {
+        int n = SEQUENCE.length(); // Size of the sequence.
+
+        String seq = "";
+        String hmm = "";
+        String prob = "";
+        for (int j = 1; j < K_STATES + 1; j++) {
+            for(int i =1;i<n+1;i++) {
+                if(Double.isInfinite(matrix[i][j].value)) {
+                    System.out.printf("-inf");
+                }
+                else {
+                    System.out.printf("%.2f", matrix[i][j].value);
+
+                }
+
+                System.out.print("\t");
+            }
+            System.out.println();
+        }
+    }
+
+    public static void printStringWithTab(String seq) {
+        for(int i=0;i<seq.length();i++) {
+            System.out.print(seq.charAt(i));
+            System.out.print("\t\t");
+        }
+        System.out.println();
     }
 
 
