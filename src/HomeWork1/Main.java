@@ -367,6 +367,15 @@ public class Main {
             }
         }
 
+        String hmm = "";
+        for(int i=1;i<n + 1;i++) {
+            int argMax = findMaxInColumn(map[i]);
+            hmm = hmm + argMax;
+        }
+
+        System.out.println(hmm);
+        System.out.println(sequence);
+
         return map;
 
     }
@@ -377,12 +386,12 @@ public class Main {
 
 //        viterbi(SEQUENCE);
 
-//        calculateMAP(SEQUENCE);
+        calculateMAP(SEQUENCE);
     }
 
  /**  DEBUG **/
 
-//
+
 //    public static void printMatrix(Cell[][] matrix) {
 //        int n = SEQUENCE.length(); // Size of the sequence.
 //
