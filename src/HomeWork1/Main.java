@@ -127,7 +127,7 @@ public class Main {
         viterbiMatrix[0][0] = new Cell(0, null, 0); // Dummy State.
 
         for(int j=1;j<K_STATES + 1;j++) {
-            viterbiMatrix[0][j] = new Cell(0, null, -Double.POSITIVE_INFINITY);
+            viterbiMatrix[0][j] = new Cell(0, null, Double.NEGATIVE_INFINITY);
         }
     }
 
@@ -227,7 +227,6 @@ public class Main {
         double [] b = new double[K_STATES + 1];
 
         for (int l=0;l<a.length;l++) {
-
             a[l] = forwardMatrix[currentIndex - 1][l].value + Math.log(transitions[l][state]);
         }
 
@@ -280,7 +279,7 @@ public class Main {
     private static void initBackwardMatrix(Cell[][] backwardMatrix,String sequence) {
         int n = sequence.length(); // Size of the sequence.
 
-        for(int j=1;j<K_STATES + 1;j++) {
+        for(int j=0;j<K_STATES + 1;j++) {
             backwardMatrix[n][j] = new Cell(j, null, 0);
         }
     }
@@ -291,10 +290,9 @@ public class Main {
 
         // Calculate sum of Logs - numeric stable.
         double [] a = new double[K_STATES + 1];
-        a[0] = Math.log(0);
         double [] b = new double[K_STATES + 1];
 
-        for (int l=1;l<a.length;l++) {
+        for (int l=0;l<a.length;l++) {
             a[l] = backardMatrix[currentIndex + 1][l].value + Math.log(transitions[state][l]) + Math.log(emissions[l][x_i_1]);
         }
 
@@ -310,20 +308,18 @@ public class Main {
             sum += Math.exp(b[i]);
         }
 
-        return new Cell(state, null,maxA + sum);
+        return new Cell(state, null,maxA + Math.log(sum));
     }
 
     private static void updateBackwardMatrix(Cell[][] backwardMatrix, String sequence) {
         int n = sequence.length(); // Size of the sequence.
 
-        for(int i = n - 1; i > 0; i--) {
-            for(int j=1;j<K_STATES + 1; j++) {
+        for(int i = n - 1; i >= 0; i--) {
+            for(int j=0;j<K_STATES + 1; j++) {
                 backwardMatrix[i][j] = calculateSumOfFrontColumn(i, j, backwardMatrix, sequence);
             }
         }
     }
-
-
 
     public static Cell[][] backward(String sequence) {
         int n = sequence.length(); // Size of the sequence.
@@ -358,9 +354,9 @@ public class Main {
 
         Cell[] [] map = new Cell[n + 1] [K_STATES + 1];
 
-        for(int i =1;i<n+1;i++) {
-            for(int j=1;j<K_STATES + 1;j++) {
-                double value = forwardMatrix[i][j].value * backwardMatrix[i][j].value;
+        for(int i =0;i<n+1;i++) {
+            for(int j=0;j<K_STATES + 1;j++) {
+                double value =  Math.log(Math.exp(forwardMatrix[i][j].value) * Math.exp(backwardMatrix[i][j].value));
                 if(Double.isInfinite(value) || Double.isNaN(value)) {
                     map[i][j] = new Cell(j, null, Double.NEGATIVE_INFINITY);
                 }
@@ -371,53 +367,8 @@ public class Main {
             }
         }
 
-        String hmm = "";
-        for(int i=1;i<n + 1;i++) {
-            int argMax = findMaxInColumn(map[i]);
-            hmm = hmm + argMax;
-        }
-
-
-
-        printStringWithTab(hmm);
-        printStringWithTab(sequence);
-        printMatrix(forwardMatrix);
-        System.out.println();
-        printMatrix(backwardMatrix);
-        System.out.println();
-        printMatrix(map);
         return map;
 
-    }
-
-    public static void printMatrix(Cell[][] matrix) {
-        int n = SEQUENCE.length(); // Size of the sequence.
-
-        String seq = "";
-        String hmm = "";
-        String prob = "";
-        for (int j = 1; j < K_STATES + 1; j++) {
-            for(int i =1;i<n+1;i++) {
-                if(Double.isInfinite(matrix[i][j].value)) {
-                    System.out.printf("-inf");
-                }
-                else {
-                    System.out.printf("%.2f", matrix[i][j].value);
-
-                }
-
-                System.out.print("\t");
-            }
-            System.out.println();
-        }
-    }
-
-    public static void printStringWithTab(String seq) {
-        for(int i=0;i<seq.length();i++) {
-            System.out.print(seq.charAt(i));
-            System.out.print("\t\t");
-        }
-        System.out.println();
     }
 
 
@@ -426,10 +377,68 @@ public class Main {
 
 //        viterbi(SEQUENCE);
 
-        calculateMAP(SEQUENCE);
-        System.out.println("Ben");
+//        calculateMAP(SEQUENCE);
     }
 
+ /**  DEBUG **/
 
+//
+//    public static void printMatrix(Cell[][] matrix) {
+//        int n = SEQUENCE.length(); // Size of the sequence.
+//
+//        String seq = "";
+//        String hmm = "";
+//        String prob = "";
+//        for (int j = 0; j < K_STATES + 1; j++) {
+//            for(int i =0;i<n+1;i++) {
+//                if(Double.isInfinite(matrix[i][j].value)) {
+//                    System.out.printf("-inf");
+//                }
+//                else {
+//                    System.out.printf("%.2f", matrix[i][j].value);
+//
+//                }
+//
+//                System.out.print("\t");
+//            }
+//            System.out.println();
+//        }
+//    }
+//
+//    public static void printStringWithTab(String seq) {
+//        for(int i=0;i<seq.length();i++) {
+//            System.out.print(seq.charAt(i));
+//            System.out.print("\t\t");
+//        }
+//        System.out.println();
+//    }
+//
+//    public static void printProbForGene(Cell[][] map) {
+//        int n = SEQUENCE.length(); // Size of the sequence.
+//        double[] probs = new double[42];
+//        for (int i = 1; i < n + 1; i++) {
+//            double geneProb = 0;
+//            double sumOfCol = sumOfCol(map[i]);
+//            geneProb = (1 - ((Math.exp(map[i][1].value)) / sumOfCol));
+//            probs[i] = geneProb;
+//        }
+//
+//        for(int i=1;i<probs.length;i++) {
+//            System.out.println("The probability that base " + i + " is inside a gene: " + probs[i]);
+//        }
+//    }
+//
+//    public static double sumOfCol(Cell[] arr) {
+//        double sum = 0;
+//        for(int i =0;i<arr.length;i++) {
+//            if(Double.isInfinite(arr[i].value)) {
+//                continue;
+//            }
+//            sum += Math.exp(arr[i].value);
+//        }
+//
+//        return sum;
+//    }
 
 }
+
