@@ -29,6 +29,7 @@ public class Main {
     public static final int S6=6;
     public static final int S7=7;
     public static final int S8=8;
+    public static final int S9=9;
 
     public static final int K_STATES = 8;
 
@@ -60,24 +61,27 @@ public class Main {
     }
 
     public static void initTransitions() {
-        transitions = new double[9][9];
+        transitions = new double[10][10];
         transitions[S0][S1] = 1; // We assume the sequence starts in intergenic
         for(int j=2;j<K_STATES + 1;j++) {
             transitions[S0][j] = 0;
         }
-        transitions[S1][S1] = 0.9;
-        transitions[S1][S2] = 0.1;
+        transitions[S1][S1] = 1 - p_3;
+        transitions[S1][S2] = p_3;
         transitions[S2][S3] = 1.0;
-        transitions[S3][S4] = 0.8;
-        transitions[S3][S5] = 0.2;
-        transitions[S4][S6] = 1.0;
-        transitions[S5][S7] = 0.5;
-        transitions[S5][S8] = 0.5;
-        transitions[S6][S4] = 0.8;
-        transitions[S6][S5] = 0.2;
-        transitions[S7][S4] = 0.8;
-        transitions[S7][S5] = 0.2;
-        transitions[S8][S1] = 1.0;
+        transitions[S3][S4] = (1 - p_4) * (1 - p_1);
+        transitions[S3][S5] = (1 - p_4) * p_1;
+        transitions[S3][S6] = p_4;
+        transitions[S4][S7] = 1.0;
+        transitions[S5][S8] = 1.0;
+        transitions[S6][S9] = 1.0;
+        transitions[S7][S4] = (1 - p_4) * (1 - p_1);
+        transitions[S7][S5] = (1 - p_4) * (1 - p_1) * p_1;
+        transitions[S7][S6] = p_4;
+        transitions[S8][S4] = (1 - p_4) * (1 - p_1);
+        transitions[S8][S5] = (1 - p_4) * (1 - p_1) * p_1;
+        transitions[S8][S6] = p_4;
+        transitions[S9][S1] = 1.0;
     }
 
     public static void initEmissions() {
