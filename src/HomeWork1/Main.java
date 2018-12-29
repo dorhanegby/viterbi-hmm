@@ -38,6 +38,11 @@ public class Main {
     public static final int C = 2;
     public static final int T = 3;
 
+    public static double p_1;
+    public static double p_2;
+    public static double p_3;
+    public static double p_4;
+
     public static final String SEQUENCE = "CCATCGCACTAGGGACGGTGGTCCGACGCACATGTTGCTCC";
 
     public static int baseToIndex(char base) {
@@ -383,7 +388,12 @@ public class Main {
 
     public static void main(String[] args) {
 	    initModel();
-
+        String seq = args[0];
+        String method = args[1];
+        p_1 = Double.parseDouble(args[2]);
+        p_2 = Double.parseDouble(args[3]);
+        p_3 = Double.parseDouble(args[4]);
+        p_4 = Double.parseDouble(args[5]);
 //        viterbi(SEQUENCE);
 
         calculateMAP(SEQUENCE);
