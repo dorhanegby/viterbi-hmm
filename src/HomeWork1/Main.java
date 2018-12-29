@@ -31,7 +31,7 @@ public class Main {
     public static final int S8=8;
     public static final int S9=9;
 
-    public static final int K_STATES = 8;
+    public static final int K_STATES = 9;
 
 
     public static final int A = 0;
@@ -85,7 +85,7 @@ public class Main {
     }
 
     public static void initEmissions() {
-        emissions = new double[9][4];
+        emissions = new double[10][4];
         emissions[S1][A] = 0.3;
         emissions[S1][G] = 0.2;
         emissions[S1][C] = 0.2;
@@ -101,9 +101,9 @@ public class Main {
         emissions[S3][C] = 1;
         emissions[S3][T] = 0;
 
-        emissions[S4][A] = 0.25;
-        emissions[S4][G] = 0.375;
-        emissions[S4][C] = 0.375;
+        emissions[S4][A] = p_1 /(1 - p_1);
+        emissions[S4][G] = (0.5 - p_1) / (1 - p_1);
+        emissions[S4][C] = (0.5 - p_1) / (1 - p_1);
         emissions[S4][T] = 0;
 
         emissions[S5][A] = 0;
@@ -111,20 +111,25 @@ public class Main {
         emissions[S5][C] = 0;
         emissions[S5][T] = 1;
 
-        emissions[S6][A] = 0.2;
-        emissions[S6][G] = 0.3;
-        emissions[S6][C] = 0.3;
-        emissions[S6][T] = 0.2;
+        emissions[S6][A] = 0;
+        emissions[S6][G] = 0;
+        emissions[S6][C] = 0;
+        emissions[S6][T] = 1;
 
-        emissions[S7][A] = 0.5;
-        emissions[S7][G] = 0;
-        emissions[S7][C] = 0;
-        emissions[S7][T] = 0.5;
+        emissions[S7][A] = p_1;
+        emissions[S7][G] = 0.5 - p_1;
+        emissions[S7][C] = 0.5 - p_1;
+        emissions[S7][T] = p_1;
 
         emissions[S8][A] = 0;
         emissions[S8][G] = 0.5;
         emissions[S8][C] = 0.5;
         emissions[S8][T] = 0;
+
+        emissions[S9][A] = 0;
+        emissions[S9][G] = 1 - p_2;
+        emissions[S9][C] = p_2;
+        emissions[S9][T] = 0;
     }
 
     public static void initModel() {
