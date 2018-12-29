@@ -44,7 +44,20 @@ public class Main {
     public static double p_3;
     public static double p_4;
 
-    public static final String SEQUENCE = "CCATCGCACTAGGGACGGTGGTCCGACGCACATGTTGCTCC";
+    public static Method method;
+
+    public static String SEQUENCE;
+
+    public static final double EPSILON = 0.00001;
+
+    public static double [][] N_trans = new double [10][10];
+    public static double [][] N_emt = new double [10][4];
+    public static double [] N_appear = new double[10];
+
+    public static double currentLikelihood = 0;
+    public static double previousLikelihood = Double.NEGATIVE_INFINITY;
+
+    public static boolean isFirstIteration = true;
 
     public static int baseToIndex(char base) {
         if(base == 'A') {
@@ -76,10 +89,10 @@ public class Main {
         transitions[S5][S8] = 1.0;
         transitions[S6][S9] = 1.0;
         transitions[S7][S4] = (1 - p_4) * (1 - p_1);
-        transitions[S7][S5] = (1 - p_4) * (1 - p_1) * p_1;
+        transitions[S7][S5] = (1 - p_4) * p_1;
         transitions[S7][S6] = p_4;
         transitions[S8][S4] = (1 - p_4) * (1 - p_1);
-        transitions[S8][S5] = (1 - p_4) * (1 - p_1) * p_1;
+        transitions[S8][S5] = (1 - p_4) * p_1;
         transitions[S8][S6] = p_4;
         transitions[S9][S1] = 1.0;
     }
@@ -193,14 +206,34 @@ public class Main {
         Cell current = maxCell;
         double maxLikelihood = maxCell.value;
 
+        N_trans = new double [10][10];
+        N_emt = new double [10][4];
+        N_appear = new double[10];
+
+
+        int wordPointer = sequence.length() - 1;
         while(current != null) {
+            N_appear[current.state]++;
+            if(current.parent != null) {
+                N_trans[current.parent.state][current.state]++;
+            }
+            if(wordPointer >= 0) {
+                int base = baseToIndex(sequence.charAt(wordPointer));
+                N_emt[current.state][base]++;
+            }
             hmm = current.state + hmm;
             current = current.parent;
+            wordPointer--;
         }
         System.out.println(hmm);
         System.out.println(" "+ sequence);
 
         System.out.println("log(P(X, S | HMM)) = " + maxLikelihood);
+        if(!isFirstIteration) {
+            previousLikelihood = currentLikelihood;
+        }
+        isFirstIteration = false;
+        currentLikelihood = maxLikelihood;
 
     }
 
@@ -394,79 +427,71 @@ public class Main {
 
     }
 
+    public static void runParamInfer() {
+        if(method == Method.Viterbi) {
+            runViterbiTraining();
+        }
+
+    }
+
+    // TODO: Add smoothing.
+    private static void updateParameters() {
+        for(int j=0;j<K_STATES;j++) {
+            if(N_appear[j] == 0) {
+                N_appear[j]++;
+            }
+            for(int l=0;l<K_STATES;l++) {
+                if(N_trans[j][l] == 0) {
+
+                    N_trans[j][l] += transitions[j][l] == 0 ? 0 : 0.01;
+                }
+                transitions[j][l] = N_trans[j][l] / N_appear[j];
+            }
+
+            for(int sigma=0;sigma<4;sigma++) {
+                if(N_emt[j][sigma] == 0) {
+                    N_emt[j][sigma] += emissions[j][sigma] == 0 ? 0 : 0.01;
+                }
+                emissions[j][sigma] = N_emt[j][sigma] / N_appear[j];
+            }
+        }
+
+        System.out.println();
+    }
+
+    private static void runViterbiTraining() {
+        while(currentLikelihood - previousLikelihood > EPSILON) {
+            viterbi(SEQUENCE);
+            updateParameters();
+        }
+        System.out.println();
+    }
+
+
+
 
     public static void main(String[] args) {
-	    initModel();
-        String seq = args[0];
-        String method = args[1];
+
+        SEQUENCE = args[0];
+        method = args[1].equals("V") ? Method.Viterbi : Method.BW;
         p_1 = Double.parseDouble(args[2]);
         p_2 = Double.parseDouble(args[3]);
         p_3 = Double.parseDouble(args[4]);
         p_4 = Double.parseDouble(args[5]);
-//        viterbi(SEQUENCE);
 
-        calculateMAP(SEQUENCE);
+        initModel();
+
+        runParamInfer();
+        System.out.println();
     }
 
- /**  DEBUG **/
 
 
-//    public static void printMatrix(Cell[][] matrix) {
-//        int n = SEQUENCE.length(); // Size of the sequence.
-//
-//        String seq = "";
-//        String hmm = "";
-//        String prob = "";
-//        for (int j = 0; j < K_STATES + 1; j++) {
-//            for(int i =0;i<n+1;i++) {
-//                if(Double.isInfinite(matrix[i][j].value)) {
-//                    System.out.printf("-inf");
-//                }
-//                else {
-//                    System.out.printf("%.2f", matrix[i][j].value);
-//
-//                }
-//
-//                System.out.print("\t");
-//            }
-//            System.out.println();
-//        }
-//    }
-//
-//    public static void printStringWithTab(String seq) {
-//        for(int i=0;i<seq.length();i++) {
-//            System.out.print(seq.charAt(i));
-//            System.out.print("\t\t");
-//        }
-//        System.out.println();
-//    }
-//
-//    public static void printProbForGene(Cell[][] map) {
-//        int n = SEQUENCE.length(); // Size of the sequence.
-//        double[] probs = new double[42];
-//        for (int i = 1; i < n + 1; i++) {
-//            double geneProb = 0;
-//            double sumOfCol = sumOfCol(map[i]);
-//            geneProb = (1 - ((Math.exp(map[i][1].value)) / sumOfCol));
-//            probs[i] = geneProb;
-//        }
-//
-//        for(int i=1;i<probs.length;i++) {
-//            System.out.println("The probability that base " + i + " is inside a gene: " + probs[i]);
-//        }
-//    }
-//
-//    public static double sumOfCol(Cell[] arr) {
-//        double sum = 0;
-//        for(int i =0;i<arr.length;i++) {
-//            if(Double.isInfinite(arr[i].value)) {
-//                continue;
-//            }
-//            sum += Math.exp(arr[i].value);
-//        }
-//
-//        return sum;
-//    }
+
+    enum Method {
+        Viterbi,
+        BW
+    }
 
 }
 
