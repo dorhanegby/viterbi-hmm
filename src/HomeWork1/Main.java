@@ -129,10 +129,10 @@ public class Main {
         emissions[S7][C] = 0.5 - p_1;
         emissions[S7][T] = p_1;
 
-        emissions[S8][A] = 0;
-        emissions[S8][G] = 0.5;
-        emissions[S8][C] = 0.5;
-        emissions[S8][T] = 0;
+        emissions[S8][A] = 0.5;
+        emissions[S8][G] = 0;
+        emissions[S8][C] = 0;
+        emissions[S8][T] = 0.5;
 
         emissions[S9][A] = 0;
         emissions[S9][G] = 1 - p_2;
@@ -161,7 +161,7 @@ public class Main {
 
         int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
 
-        double maxValue = -Double.POSITIVE_INFINITY;
+        double maxValue = Double.NEGATIVE_INFINITY;
         Cell maxParent = null;
 
         for (int j = 0; j < K_STATES + 1; j++) {
@@ -435,9 +435,11 @@ public class Main {
 
     // TODO: Add smoothing.
     private static void updateParameters() {
-        double p_1 = ((double) 2 * N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]) / (N_appear[7] + N_appear[8] + N_appear[3] + N_appear[4] * 3);
+        double numerator = (N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]);
+        double p_1 =  (1.0 / 2.0) * (numerator) / (numerator + N_emt[7][C] + N_emt[7][G] + N_emt[4][C] + N_emt[4][G] + N_trans[3][4]
+                + N_trans[7][4] + N_trans[8][4] - N_appear[4]);
         double p_2 = (N_emt[9][C]) / (N_appear[9]);
-        double p_3 = (N_trans[1][2]) / (N_appear[1]);
+        double p_3 = (N_trans[1][2]) / (N_trans[1][1] + N_trans[1][2]);
         double p_4 = (N_trans[3][6] + N_trans[7][6] + N_trans[8][6]) / (N_appear[3] + N_appear[7] + N_appear[8]);
 
         initModel(p_1, p_2, p_3, p_4);
