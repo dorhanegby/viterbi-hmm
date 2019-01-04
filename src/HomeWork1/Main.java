@@ -39,11 +39,6 @@ public class Main {
     public static final int C = 2;
     public static final int T = 3;
 
-    public static double p_1;
-    public static double p_2;
-    public static double p_3;
-    public static double p_4;
-
     public static Method method;
 
     public static String SEQUENCE;
@@ -73,7 +68,7 @@ public class Main {
         return T;
     }
 
-    public static void initTransitions() {
+    public static void initTransitions(double p_1, double p_2, double p_3, double p_4) {
         transitions = new double[10][10];
         transitions[S0][S1] = 1; // We assume the sequence starts in intergenic
         for(int j=2;j<K_STATES + 1;j++) {
@@ -97,7 +92,7 @@ public class Main {
         transitions[S9][S1] = 1.0;
     }
 
-    public static void initEmissions() {
+    public static void initEmissions(double p_1, double p_2, double p_3, double p_4) {
         emissions = new double[10][4];
         emissions[S1][A] = 0.3;
         emissions[S1][G] = 0.2;
@@ -114,7 +109,7 @@ public class Main {
         emissions[S3][C] = 1;
         emissions[S3][T] = 0;
 
-        emissions[S4][A] = p_1 /(1 - p_1);
+        emissions[S4][A] = p_1 / (1 - p_1);
         emissions[S4][G] = (0.5 - p_1) / (1 - p_1);
         emissions[S4][C] = (0.5 - p_1) / (1 - p_1);
         emissions[S4][T] = 0;
@@ -145,9 +140,13 @@ public class Main {
         emissions[S9][T] = 0;
     }
 
-    public static void initModel() {
-        initTransitions();
-        initEmissions();
+    public static void initModel(double p_1, double p_2, double p_3, double p_4) {
+        System.out.println("p_1: " + p_1);
+        System.out.println("p_2: " + p_2);
+        System.out.println("p_3: " + p_3);
+        System.out.println("p_4: " + p_4);
+        initTransitions(p_1, p_2, p_3, p_4);
+        initEmissions(p_1, p_2, p_3, p_4);
     }
 
     private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
@@ -436,27 +435,12 @@ public class Main {
 
     // TODO: Add smoothing.
     private static void updateParameters() {
-        for(int j=0;j<K_STATES;j++) {
-            if(N_appear[j] == 0) {
-                N_appear[j]++;
-            }
-            for(int l=0;l<K_STATES;l++) {
-                if(N_trans[j][l] == 0) {
+        double p_1 = ((double) 2 * N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]) / (N_appear[7] + N_appear[8] + N_appear[3] + N_appear[4] * 3);
+        double p_2 = (N_emt[9][C]) / (N_appear[9]);
+        double p_3 = (N_trans[1][2]) / (N_appear[1]);
+        double p_4 = (N_trans[3][6] + N_trans[7][6] + N_trans[8][6]) / (N_appear[3] + N_appear[7] + N_appear[8]);
 
-                    N_trans[j][l] += transitions[j][l] == 0 ? 0 : 0.01;
-                }
-                transitions[j][l] = N_trans[j][l] / N_appear[j];
-            }
-
-            for(int sigma=0;sigma<4;sigma++) {
-                if(N_emt[j][sigma] == 0) {
-                    N_emt[j][sigma] += emissions[j][sigma] == 0 ? 0 : 0.01;
-                }
-                emissions[j][sigma] = N_emt[j][sigma] / N_appear[j];
-            }
-        }
-
-        System.out.println();
+        initModel(p_1, p_2, p_3, p_4);
     }
 
     private static void runViterbiTraining() {
@@ -464,7 +448,6 @@ public class Main {
             viterbi(SEQUENCE);
             updateParameters();
         }
-        System.out.println();
     }
 
 
@@ -474,15 +457,14 @@ public class Main {
 
         SEQUENCE = args[0];
         method = args[1].equals("V") ? Method.Viterbi : Method.BW;
-        p_1 = Double.parseDouble(args[2]);
-        p_2 = Double.parseDouble(args[3]);
-        p_3 = Double.parseDouble(args[4]);
-        p_4 = Double.parseDouble(args[5]);
+        double p_1 = Double.parseDouble(args[2]);
+        double p_2 = Double.parseDouble(args[3]);
+        double p_3 = Double.parseDouble(args[4]);
+        double p_4 = Double.parseDouble(args[5]);
 
-        initModel();
+        initModel(p_1, p_2, p_3, p_4);
 
         runParamInfer();
-        System.out.println();
     }
 
 
