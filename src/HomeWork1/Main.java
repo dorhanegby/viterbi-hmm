@@ -3,6 +3,8 @@ package HomeWork1;
 public class Main {
 
 
+    /** Dynamic Programming Matrix Cell **/
+
     private static class Cell {
         int state;
         Cell parent;
@@ -15,46 +17,52 @@ public class Main {
         }
     }
 
-    public static double[][] transitions;
-    public static double[][] emissions;
+    /** HMM Model **/
 
-    public static int OFFSET = 1;
+    private static double[][] transitions;
+    private static double[][] emissions;
 
-    public static final int S0=0;
-    public static final int S1=1;
-    public static final int S2=2;
-    public static final int S3=3;
-    public static final int S4=4;
-    public static final int S5=5;
-    public static final int S6=6;
-    public static final int S7=7;
-    public static final int S8=8;
-    public static final int S9=9;
+    /** Inputs **/
 
-    public static final int K_STATES = 9;
+    private static Method method;
+    private static String SEQUENCE;
 
+    /** Constants **/
 
-    public static final int A = 0;
-    public static final int G = 1;
-    public static final int C = 2;
-    public static final int T = 3;
+    private static final int S0=0;
+    private static final int S1=1;
+    private static final int S2=2;
+    private static final int S3=3;
+    private static final int S4=4;
+    private static final int S5=5;
+    private static final int S6=6;
+    private static final int S7=7;
+    private static final int S8=8;
+    private static final int S9=9;
 
-    public static Method method;
+    private static final int K_STATES = 9;
 
-    public static String SEQUENCE;
+    private static final int A = 0;
+    private static final int G = 1;
+    private static final int C = 2;
+    private static final int T = 3;
 
-    public static final double EPSILON = 0.00001;
+    private static final double EPSILON = 0.00001;
 
-    public static double [][] N_trans = new double [10][10];
-    public static double [][] N_emt = new double [10][4];
-    public static double [] N_appear = new double[10];
+    /** Statistics **/
 
-    public static double currentLikelihood = 0;
-    public static double previousLikelihood = Double.NEGATIVE_INFINITY;
+    private static double [][] N_trans = new double [10][10];
+    private static double [][] N_emt = new double [10][4];
+    private static double [] N_appear = new double[10];
 
-    public static boolean isFirstIteration = true;
+    /** Iterations **/
+    private static double currentLikelihood = 0;
+    private static double previousLikelihood = Double.NEGATIVE_INFINITY;
+    private static boolean isFirstIteration = true;
 
-    public static int baseToIndex(char base) {
+    /** Helpers **/
+
+    private static int baseToIndex(char base) {
         if(base == 'A') {
             return A;
         }
@@ -68,7 +76,33 @@ public class Main {
         return T;
     }
 
-    public static void initTransitions(double p_1, double p_2, double p_3, double p_4) {
+    private static double findMax(double[] a) {
+        double maxValue = a[0];
+        for(int i=1;i<a.length;i++) {
+            if(a[i] > maxValue) {
+                maxValue = a[i];
+            }
+        }
+
+        return maxValue;
+    }
+
+    private static double sumOfExponents(double [] a, double [] b, int state, double maxA) {
+        double sum = 0;
+
+        for (int i =0;i<b.length;i++) {
+
+            b[i] = a[i] - maxA;
+            sum += Math.exp(b[i]);
+
+        }
+
+        return sum;
+    }
+
+    /** Model Helpers **/
+
+    private static void initTransitions(double p_1, double p_2, double p_3, double p_4) {
         transitions = new double[10][10];
         transitions[S0][S1] = 1; // We assume the sequence starts in intergenic
         for(int j=2;j<K_STATES + 1;j++) {
@@ -92,7 +126,7 @@ public class Main {
         transitions[S9][S1] = 1.0;
     }
 
-    public static void initEmissions(double p_1, double p_2, double p_3, double p_4) {
+    private static void initEmissions(double p_1, double p_2, double p_3, double p_4) {
         emissions = new double[10][4];
         emissions[S1][A] = 0.3;
         emissions[S1][G] = 0.2;
@@ -140,7 +174,7 @@ public class Main {
         emissions[S9][T] = 0;
     }
 
-    public static void initModel(double p_1, double p_2, double p_3, double p_4) {
+    private static void initModel(double p_1, double p_2, double p_3, double p_4) {
         System.out.println("p_1: " + p_1);
         System.out.println("p_2: " + p_2);
         System.out.println("p_3: " + p_3);
@@ -149,13 +183,7 @@ public class Main {
         initEmissions(p_1, p_2, p_3, p_4);
     }
 
-    private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
-        viterbiMatrix[0][0] = new Cell(0, null, 0); // Dummy State.
-
-        for(int j=1;j<K_STATES + 1;j++) {
-            viterbiMatrix[0][j] = new Cell(0, null, Double.NEGATIVE_INFINITY);
-        }
-    }
+    /** Viterbi Helpers **/
 
     private static Cell calculateMaxParent(int currentIndex, int state, Cell[][] viterbiMatrix, String sequence) {
 
@@ -167,13 +195,94 @@ public class Main {
         for (int j = 0; j < K_STATES + 1; j++) {
             double value = viterbiMatrix[currentIndex - 1][j].value + Math.log(transitions[j][state]);
 
-           if(value > maxValue) {
-               maxValue = value;
-               maxParent = viterbiMatrix[currentIndex - 1][j];
-           }
+            if(value > maxValue) {
+                maxValue = value;
+                maxParent = viterbiMatrix[currentIndex - 1][j];
+            }
         }
 
         return new Cell(state, maxParent, maxValue + Math.log(emissions[state][x_i]));
+    }
+
+    /** Forward Helpers **/
+
+    private static Cell calculateSumOfLastColumn(int currentIndex, int state, Cell[][] forwardMatrix, String sequence) {
+
+        int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
+
+        // Calculate sum of Logs - numeric stable.
+        double [] a = new double[K_STATES + 1];
+        double [] b = new double[K_STATES + 1];
+
+        for (int l=0;l<a.length;l++) {
+            a[l] = forwardMatrix[currentIndex - 1][l].value + Math.log(transitions[l][state]);
+        }
+
+        double maxA = findMax(a);
+        double sum = 0;
+
+        if(Double.isInfinite(maxA)) {
+            return new Cell(state, null, maxA);
+        }
+
+        sum = sumOfExponents(a, b, state, maxA);
+
+
+        double sumOfLogs = maxA + Math.log(sum);
+
+
+        return new Cell(state, null, sumOfLogs + Math.log(emissions[state][x_i]));
+
+    }
+
+    /** Backward Helpers **/
+
+    private static Cell calculateSumOfFrontColumn(int currentIndex, int state, Cell[][] backwardMatrix, String sequence) {
+
+        int x_i_1 = baseToIndex(sequence.charAt(currentIndex));
+
+        // Calculate sum of Logs - numeric stable.
+        double [] a = new double[K_STATES + 1];
+        double [] b = new double[K_STATES + 1];
+
+        for (int l=0;l<a.length;l++) {
+            a[l] = backwardMatrix[currentIndex + 1][l].value + Math.log(transitions[state][l]) + Math.log(emissions[l][x_i_1]);
+        }
+
+        double maxA = findMax(a);
+        if(Double.isInfinite(maxA)) {
+            return new Cell(state, null,maxA);
+        }
+
+        double sum = sumOfExponents(a, b, state, maxA);
+
+        return new Cell(state, null,maxA + Math.log(sum));
+    }
+
+    /** MAP Helpers **/
+
+    private static int findMaxInColumn(Cell[] col) {
+
+        int argMax = 1;
+        double maxValue = col[1].value;
+
+        for(int j=2;j<col.length;j++) {
+            if (col[j].value > maxValue) {
+                argMax = j;
+            }
+        }
+
+        return argMax;
+    }
+
+    /** Viterbi **/
+
+    private static void initViterbiMatrix(Cell[][] viterbiMatrix) {
+        viterbiMatrix[0][0] = new Cell(0, null, 0); // Dummy State.
+
+        for(int j=1;j<K_STATES + 1;j++) {
+            viterbiMatrix[0][j] = new Cell(0, null, Double.NEGATIVE_INFINITY);
+        }
     }
 
     private static void updateViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
@@ -185,7 +294,6 @@ public class Main {
             }
         }
     }
-
 
     private static void outputViterbiMatrix(Cell[][] viterbiMatrix, String sequence) {
 
@@ -239,7 +347,7 @@ public class Main {
     // V[i,j] = the probability of an annotation of
     // the prefix X1...Xi  that has the highest probability among
     // those that end with state sj
-    public static void viterbi(String sequence) {
+    private static void viterbi(String sequence) {
         int n = sequence.length(); // Size of the sequence.
         Cell[][] viterbiMatrix = new Cell[n + 1][K_STATES + 1];
 
@@ -248,55 +356,10 @@ public class Main {
         outputViterbiMatrix(viterbiMatrix, sequence);
     }
 
+    /** Forward **/
     private static void initForwardMatrix(Cell[][] forwardMatrix) {
         initViterbiMatrix(forwardMatrix);
     }
-
-
-    private static double findMax(double[] a) {
-        double maxValue = a[0];
-        for(int i=1;i<a.length;i++) {
-            if(a[i] > maxValue) {
-                maxValue = a[i];
-            }
-        }
-
-        return maxValue;
-    }
-
-    private static Cell calculateSumOfLastColumn(int currentIndex, int state, Cell[][] forwardMatrix, String sequence) {
-
-        int x_i = baseToIndex(sequence.charAt(currentIndex - 1));
-
-        // Calculate sum of Logs - numeric stable.
-        double [] a = new double[K_STATES + 1];
-        double [] b = new double[K_STATES + 1];
-
-        for (int l=0;l<a.length;l++) {
-            a[l] = forwardMatrix[currentIndex - 1][l].value + Math.log(transitions[l][state]);
-        }
-
-        double maxA = findMax(a);
-        double sum = 0;
-        for (int i =0;i<b.length;i++) {
-
-            if(Double.isInfinite(maxA)) {
-                return new Cell(state, null, maxA);
-            }
-
-            b[i] = a[i] - maxA;
-            sum += Math.exp(b[i]);
-
-        }
-
-
-        double sumOfLogs = maxA + Math.log(sum);
-
-
-        return new Cell(state, null, sumOfLogs + Math.log(emissions[state][x_i]));
-
-    }
-
 
     private static void updateForwardMatrix(Cell[][] forwardMatrix, String sequence) {
 
@@ -310,9 +373,7 @@ public class Main {
 
     }
 
-
-
-    public static Cell[][] forward(String sequence) {
+    private static Cell[][] forward(String sequence) {
         int n = sequence.length(); // Size of the sequence.
         Cell[][] forwardMatrix = new Cell[n + 1][K_STATES + 1];
 
@@ -322,39 +383,14 @@ public class Main {
         return forwardMatrix;
     }
 
+    /** Backward **/
+
     private static void initBackwardMatrix(Cell[][] backwardMatrix,String sequence) {
         int n = sequence.length(); // Size of the sequence.
 
         for(int j=0;j<K_STATES + 1;j++) {
             backwardMatrix[n][j] = new Cell(j, null, 0);
         }
-    }
-
-    private static Cell calculateSumOfFrontColumn(int currentIndex, int state, Cell[][] backardMatrix, String sequence) {
-
-        int x_i_1 = baseToIndex(sequence.charAt(currentIndex));
-
-        // Calculate sum of Logs - numeric stable.
-        double [] a = new double[K_STATES + 1];
-        double [] b = new double[K_STATES + 1];
-
-        for (int l=0;l<a.length;l++) {
-            a[l] = backardMatrix[currentIndex + 1][l].value + Math.log(transitions[state][l]) + Math.log(emissions[l][x_i_1]);
-        }
-
-        double maxA = findMax(a);
-        double sum = 0;
-        for (int i =0;i<b.length;i++) {
-
-            if(Double.isInfinite(maxA)) {
-                return new Cell(state, null,maxA);
-            }
-
-            b[i] = a[i] - maxA;
-            sum += Math.exp(b[i]);
-        }
-
-        return new Cell(state, null,maxA + Math.log(sum));
     }
 
     private static void updateBackwardMatrix(Cell[][] backwardMatrix, String sequence) {
@@ -367,7 +403,7 @@ public class Main {
         }
     }
 
-    public static Cell[][] backward(String sequence) {
+    private static Cell[][] backward(String sequence) {
         int n = sequence.length(); // Size of the sequence.
         Cell[][] backwardMatrix = new Cell[n + 1][K_STATES + 1];
 
@@ -377,20 +413,7 @@ public class Main {
         return backwardMatrix;
     }
 
-
-    private static int findMaxInColumn(Cell[] col) {
-
-        int argMax = 1;
-        double maxValue = col[1].value;
-
-        for(int j=2;j<col.length;j++) {
-            if (col[j].value > maxValue) {
-                argMax = j;
-            }
-        }
-
-        return argMax;
-    }
+    /** MAP **/
 
     private static Cell[] [] calculateMAP(String sequence) {
         int n = sequence.length(); // Size of the sequence.
@@ -426,14 +449,15 @@ public class Main {
 
     }
 
-    public static void runParamInfer() {
+    /** Parameter inference **/
+
+    private static void runParamInfer() {
         if(method == Method.Viterbi) {
             runViterbiTraining();
         }
 
     }
 
-    // TODO: Add smoothing.
     private static void updateParameters() {
         double numerator = (N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]);
         double p_1 =  (1.0 / 2.0) * (numerator) / (numerator + N_emt[7][C] + N_emt[7][G] + N_emt[4][C] + N_emt[4][G] + N_trans[3][4]
@@ -445,6 +469,8 @@ public class Main {
         initModel(p_1, p_2, p_3, p_4);
     }
 
+    /** Viterbi training **/
+
     private static void runViterbiTraining() {
         while(currentLikelihood - previousLikelihood > EPSILON) {
             viterbi(SEQUENCE);
@@ -452,7 +478,7 @@ public class Main {
         }
     }
 
-
+    /** Baum-Welch **/
 
 
     public static void main(String[] args) {
@@ -468,8 +494,6 @@ public class Main {
 
         runParamInfer();
     }
-
-
 
 
     enum Method {
