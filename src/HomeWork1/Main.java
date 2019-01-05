@@ -174,12 +174,14 @@ public class Main {
     }
 
     private static void initModel(double p_1, double p_2, double p_3, double p_4) {
-        System.out.println("p_1: " + p_1);
-        System.out.println("p_2: " + p_2);
-        System.out.println("p_3: " + p_3);
-        System.out.println("p_4: " + p_4);
         initTransitions(p_1, p_2, p_3, p_4);
         initEmissions(p_1, p_2, p_3, p_4);
+    }
+
+    private static void printModel(double p_1, double p_2, double p_3, double p_4) {
+        System.out.println("|\t" + String.format("%.4f", p_1) + "\t\t" + String.format("%.4f", p_2) + "\t\t"
+                + String.format("%.4f", p_3) + "\t\t" + String.format("%.4f", p_4) + "\t\t"
+                + String.format("%.4f", currentLikelihood) + "\t|");
     }
 
     /** Viterbi Helpers **/
@@ -329,10 +331,6 @@ public class Main {
             current = current.parent;
             wordPointer--;
         }
-        System.out.println(hmm);
-        System.out.println(" "+ sequence);
-
-        System.out.println("log(P(X, S | HMM)) = " + maxLikelihood);
         if(!isFirstIteration) {
             previousLikelihood = currentLikelihood;
         }
@@ -354,7 +352,6 @@ public class Main {
             }
         }
 
-        System.out.println("log(P(X, S | HMM)) = " + likelihood);
         if(!isFirstIteration) {
             previousLikelihood = currentLikelihood;
         }
@@ -379,9 +376,6 @@ public class Main {
     private static void updateExpectedTransition(Cell[][] forward, Cell[][] backward) {
         for(int j=1;j<K_STATES + 1; j++) {
             for(int l=1;l<K_STATES + 1;l++) {
-                if(j == 1 && l == 2) {
-                    System.out.println();
-                }
                 double sumOfPaths = calculateSumOfPaths(forward, backward, j, l);
 
                 N_trans[j][l] = transitions[j][l] * sumOfPaths;
@@ -573,7 +567,7 @@ public class Main {
             p_4 = numerator / (numerator + N_trans[3][4] + N_trans[3][5] + N_trans[7][4] + N_trans[7][5] + N_trans[8][4] + N_trans[8][5]);
         }
 
-
+        printModel(p_1, p_2, p_3, p_4);
         initModel(p_1, p_2, p_3, p_4);
     }
 
@@ -584,6 +578,8 @@ public class Main {
             viterbi(SEQUENCE);
             updateParameters();
         }
+
+        System.out.println("\n\nDone.");
     }
 
     /** Baum-Welch **/
@@ -596,20 +592,35 @@ public class Main {
             updatedExpectedEmission(forward, backward);
             updateParameters();
         }
+
+        System.out.println("\n\nDone.");
+    }
+
+    private static void printHeader() {
+        System.out.println(SEQUENCE);
+        int n = SEQUENCE.length();
+        for(int i=0;i<n;i++) {
+            System.out.print("-");
+        }
+        System.out.println();
+
+        String methodText = method == Method.Viterbi ? "(Viterbi log prob)" : "(log likelihood)";
+        System.out.println("|\tp[1]\t\tp[2]\t\tp[3]\t\tp[4]\t\tscore " + methodText);
     }
 
     public static void main(String[] args) {
 
         SEQUENCE = args[0];
         method = args[1].equals("V") ? Method.Viterbi : Method.BW;
+        printHeader();
         double p_1 = Double.parseDouble(args[2]);
         double p_2 = Double.parseDouble(args[3]);
         double p_3 = Double.parseDouble(args[4]);
         double p_4 = Double.parseDouble(args[5]);
 
         initModel(p_1, p_2, p_3, p_4);
-
         runParamInfer();
+
     }
 
 
