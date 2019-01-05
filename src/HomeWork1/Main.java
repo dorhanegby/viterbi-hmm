@@ -199,7 +199,7 @@ public class Main {
         Cell maxParent = null;
 
         for (int j = 0; j < K_STATES + 1; j++) {
-            double value = viterbiMatrix[currentIndex - 1][j].value + Math.log(transitions[j][state]);
+            double value = viterbiMatrix[currentIndex - 1][j].value + safeLog(transitions[j][state]);
 
             if(value > maxValue) {
                 maxValue = value;
@@ -207,10 +207,14 @@ public class Main {
             }
         }
 
-        return new Cell(state, maxParent, maxValue + Math.log(emissions[state][x_i]));
+        return new Cell(state, maxParent, maxValue + safeLog(emissions[state][x_i]));
     }
 
     /** Forward Helpers **/
+
+    private static double safeLog(double a) {
+        return Double.isNaN(Math.log(a)) ? Double.NEGATIVE_INFINITY : Math.log(a);
+    }
 
     private static Cell calculateSumOfLastColumn(int currentIndex, int state, Cell[][] forwardMatrix, String sequence) {
 
@@ -221,7 +225,7 @@ public class Main {
         double [] b = new double[K_STATES + 1];
 
         for (int l=0;l<a.length;l++) {
-            a[l] = forwardMatrix[currentIndex - 1][l].value + Math.log(transitions[l][state]);
+            a[l] = forwardMatrix[currentIndex - 1][l].value + safeLog(transitions[l][state]);
         }
 
         double maxA = findMax(a);
@@ -234,10 +238,10 @@ public class Main {
         sum = sumOfExponents(a, b, state, maxA);
 
 
-        double sumOfLogs = maxA + Math.log(sum);
+        double sumOfLogs = maxA + safeLog(sum);
 
 
-        return new Cell(state, null, sumOfLogs + Math.log(emissions[state][x_i]));
+        return new Cell(state, null, sumOfLogs + safeLog(emissions[state][x_i]));
 
     }
 
@@ -252,7 +256,10 @@ public class Main {
         double [] b = new double[K_STATES + 1];
 
         for (int l=0;l<a.length;l++) {
-            a[l] = backwardMatrix[currentIndex + 1][l].value + Math.log(transitions[state][l]) + Math.log(emissions[l][x_i_1]);
+            a[l] = backwardMatrix[currentIndex + 1][l].value + safeLog(transitions[state][l]) + safeLog(emissions[l][x_i_1]);
+            if(Double.isNaN(a[l])) {
+                a[l] = Double.NEGATIVE_INFINITY;
+            }
         }
 
         double maxA = findMax(a);
@@ -262,7 +269,7 @@ public class Main {
 
         double sum = sumOfExponents(a, b, state, maxA);
 
-        return new Cell(state, null,maxA + Math.log(sum));
+        return new Cell(state, null,maxA + safeLog(sum));
     }
 
     /** MAP Helpers **/
@@ -384,6 +391,7 @@ public class Main {
                 double sumOfPaths = calculateSumOfPaths(forward, backward, j, l);
 
                 N_trans[j][l] = transitions[j][l] * sumOfPaths;
+
             }
         }
 
@@ -495,7 +503,7 @@ public class Main {
 
         for(int i =0;i<n+1;i++) {
             for(int j=0;j<K_STATES + 1;j++) {
-                double value =  Math.log(Math.exp(forwardMatrix[i][j].value) * Math.exp(backwardMatrix[i][j].value));
+                double value =  safeLog(Math.exp(forwardMatrix[i][j].value) * safeLog(backwardMatrix[i][j].value));
                 if(Double.isInfinite(value) || Double.isNaN(value)) {
                     map[i][j] = new Cell(j, null, Double.NEGATIVE_INFINITY);
                 }
