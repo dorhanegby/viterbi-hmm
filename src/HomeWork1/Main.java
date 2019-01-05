@@ -416,10 +416,10 @@ public class Main {
             if(Double.isInfinite(lastColumn[i].value)) {
                 continue;
             }
-            sum += lastColumn[i].value;
+            sum += Math.exp(lastColumn[i].value);
         }
 
-        return sum;
+        return safeLog(sum);
     }
 
     // V[i,j] = the probability of an annotation of
