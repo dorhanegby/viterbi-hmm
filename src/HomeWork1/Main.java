@@ -365,8 +365,8 @@ public class Main {
     private static double calculatePotEmissions(Cell[][] forward, Cell[][] backward, int sigma, int state) {
         int n = SEQUENCE.length();
         double sum = 0;
-        for(int i=0;i<n;i++) {
-            if(baseToIndex(SEQUENCE.charAt(i)) != sigma) {
+        for(int i=1;i<n + 1;i++) {
+            if(baseToIndex(SEQUENCE.charAt(i - 1)) != sigma) {
                 continue;
             }
             sum += Math.exp(forward[i][state].value) * Math.exp(backward[i][state].value);
@@ -379,7 +379,11 @@ public class Main {
     private static void updateExpectedTransition(Cell[][] forward, Cell[][] backward) {
         for(int j=1;j<K_STATES + 1; j++) {
             for(int l=1;l<K_STATES + 1;l++) {
+                if(j == 1 && l == 2) {
+                    System.out.println();
+                }
                 double sumOfPaths = calculateSumOfPaths(forward, backward, j, l);
+
                 N_trans[j][l] = transitions[j][l] * sumOfPaths;
             }
         }
@@ -389,8 +393,8 @@ public class Main {
     private static double calculateSumOfPaths(Cell[][] forward, Cell[][] backward, int startState, int endState) {
         int n = SEQUENCE.length();
         double sum = 0;
-        for(int i=0;i<n - 1;i++) {
-            int x_i = baseToIndex(SEQUENCE.charAt(i + 1));
+        for(int i=1;i<n;i++) {
+            int x_i = baseToIndex(SEQUENCE.charAt(i));
             sum += Math.exp(forward[i][startState].value) * emissions[endState][x_i] * Math.exp(backward[i + 1][endState].value);
         }
 
