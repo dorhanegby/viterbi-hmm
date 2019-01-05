@@ -53,7 +53,6 @@ public class Main {
 
     private static double [][] N_trans = new double [10][10];
     private static double [][] N_emt = new double [10][4];
-    private static double [] N_appear = new double[10];
 
     /** Iterations **/
     private static double currentLikelihood = 0;
@@ -315,12 +314,10 @@ public class Main {
 
         N_trans = new double [10][10];
         N_emt = new double [10][4];
-        N_appear = new double[10];
 
 
         int wordPointer = sequence.length() - 1;
         while(current != null) {
-            N_appear[current.state]++;
             if(current.parent != null) {
                 N_trans[current.parent.state][current.state]++;
             }
@@ -342,6 +339,76 @@ public class Main {
         isFirstIteration = false;
         currentLikelihood = maxLikelihood;
 
+    }
+
+    /** Baum-Welch Helpers **/
+
+
+    private static void updatedExpectedEmission(Cell[][] forward, Cell[][] backward) {
+        double likelihood = calculateLikelihoodFromForward(forward);
+
+        for(int j=1;j<K_STATES + 1; j++) {
+            for(int sigma=0;sigma<4;sigma++) {
+                double sumOfPostEmissions = calculatePotEmissions(forward, backward, sigma, j);
+                N_emt[j][sigma] = sumOfPostEmissions;
+            }
+        }
+
+        System.out.println("log(P(X, S | HMM)) = " + likelihood);
+        if(!isFirstIteration) {
+            previousLikelihood = currentLikelihood;
+        }
+        isFirstIteration = false;
+        currentLikelihood = likelihood;
+    }
+
+    private static double calculatePotEmissions(Cell[][] forward, Cell[][] backward, int sigma, int state) {
+        int n = SEQUENCE.length();
+        double sum = 0;
+        for(int i=0;i<n;i++) {
+            if(baseToIndex(SEQUENCE.charAt(i)) != sigma) {
+                continue;
+            }
+            sum += Math.exp(forward[i][state].value) * Math.exp(backward[i][state].value);
+        }
+
+        return sum;
+    }
+
+
+    private static void updateExpectedTransition(Cell[][] forward, Cell[][] backward) {
+        for(int j=1;j<K_STATES + 1; j++) {
+            for(int l=1;l<K_STATES + 1;l++) {
+                double sumOfPaths = calculateSumOfPaths(forward, backward, j, l);
+                N_trans[j][l] = transitions[j][l] * sumOfPaths;
+            }
+        }
+
+    }
+
+    private static double calculateSumOfPaths(Cell[][] forward, Cell[][] backward, int startState, int endState) {
+        int n = SEQUENCE.length();
+        double sum = 0;
+        for(int i=0;i<n - 1;i++) {
+            int x_i = baseToIndex(SEQUENCE.charAt(i + 1));
+            sum += Math.exp(forward[i][startState].value) * emissions[endState][x_i] * Math.exp(backward[i + 1][endState].value);
+        }
+
+        return sum;
+    }
+
+    private static double calculateLikelihoodFromForward(Cell[][] forward) {
+        double sum = 0;
+        Cell[] lastColumn = forward[SEQUENCE.length()];
+
+        for(int i=0;i<lastColumn.length;i++) {
+            if(Double.isInfinite(lastColumn[i].value)) {
+                continue;
+            }
+            sum += lastColumn[i].value;
+        }
+
+        return sum;
     }
 
     // V[i,j] = the probability of an annotation of
@@ -456,15 +523,52 @@ public class Main {
             runViterbiTraining();
         }
 
+        else {
+            runBaumWelch();
+        }
+
     }
 
     private static void updateParameters() {
+
+        double p_1;
         double numerator = (N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]);
-        double p_1 =  (1.0 / 2.0) * (numerator) / (numerator + N_emt[7][C] + N_emt[7][G] + N_emt[4][C] + N_emt[4][G] + N_trans[3][4]
-                + N_trans[7][4] + N_trans[8][4] - N_appear[4]);
-        double p_2 = (N_emt[9][C]) / (N_appear[9]);
-        double p_3 = (N_trans[1][2]) / (N_trans[1][1] + N_trans[1][2]);
-        double p_4 = (N_trans[3][6] + N_trans[7][6] + N_trans[8][6]) / (N_appear[3] + N_appear[7] + N_appear[8]);
+
+        if(numerator == 0) {
+            p_1 = 0;
+        }
+        else {
+            p_1 =  (1.0 / 2.0) * (numerator) / (numerator + N_emt[7][C] + N_emt[7][G] + N_emt[4][C] + N_emt[4][G]);
+        }
+
+        double p_2;
+
+        if(N_emt[9][C] == 0) {
+            p_2 = 0;
+        }
+        else {
+            p_2 = (N_emt[9][C]) / (N_emt[9][C] + N_emt[9][G]);
+        }
+
+        double p_3;
+
+        if(N_trans[1][2] == 0) {
+            p_3 = 0;
+        }
+        else {
+            p_3 = (N_trans[1][2]) / (N_trans[1][1] + N_trans[1][2]);
+        }
+
+        double p_4;
+        numerator = N_trans[3][6] + N_trans[7][6] + N_trans[8][6];
+
+        if(numerator == 0) {
+            p_4 = 0;
+        }
+        else {
+            p_4 = numerator / (numerator + N_trans[3][4] + N_trans[3][5] + N_trans[7][4] + N_trans[7][5] + N_trans[8][4] + N_trans[8][5]);
+        }
+
 
         initModel(p_1, p_2, p_3, p_4);
     }
@@ -480,6 +584,15 @@ public class Main {
 
     /** Baum-Welch **/
 
+    private static void runBaumWelch() {
+        while(currentLikelihood - previousLikelihood > EPSILON) {
+            Cell[][] forward = forward(SEQUENCE);
+            Cell[][] backward = backward(SEQUENCE);
+            updateExpectedTransition(forward, backward);
+            updatedExpectedEmission(forward, backward);
+            updateParameters();
+        }
+    }
 
     public static void main(String[] args) {
 
