@@ -178,7 +178,12 @@ public class Main {
         initEmissions(p_1, p_2, p_3, p_4);
     }
 
-    private static void printModel(double p_1, double p_2, double p_3, double p_4) {
+    private static void printModelProbabilities() {
+        double p_1 = emissions[S7][A];
+        double p_2 = emissions[S9][C];
+        double p_3 = transitions[S1][S2];
+        double p_4 = transitions[S3][S6];
+
         System.out.println("|\t" + String.format("%.4f", p_1) + "\t\t" + String.format("%.4f", p_2) + "\t\t"
                 + String.format("%.4f", p_3) + "\t\t" + String.format("%.4f", p_4) + "\t\t"
                 + String.format("%.4f", currentLikelihood) + "\t|");
@@ -528,6 +533,7 @@ public class Main {
     }
 
     private static void updateParameters() {
+        printModelProbabilities();
 
         double p_1;
         double numerator = (N_emt[7][A] + N_emt[7][T] + N_trans[3][5] + N_trans[7][5] + N_trans[8][5] + N_emt[4][A]);
@@ -566,8 +572,6 @@ public class Main {
         else {
             p_4 = numerator / (numerator + N_trans[3][4] + N_trans[3][5] + N_trans[7][4] + N_trans[7][5] + N_trans[8][4] + N_trans[8][5]);
         }
-
-        printModel(p_1, p_2, p_3, p_4);
         initModel(p_1, p_2, p_3, p_4);
     }
 
